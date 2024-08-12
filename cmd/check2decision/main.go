@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,7 +11,20 @@ import (
 	"github.com/aserto-dev/check2decision/pkg/cmd"
 )
 
+const (
+	rcOK  int = 0
+	rcErr int = 1
+)
+
 func main() {
+	if len(os.Args) == 1 {
+		os.Args = append(os.Args, "--help")
+	}
+
+	os.Exit(run())
+}
+
+func run() (exitCode int) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -35,6 +49,13 @@ func main() {
 	kongCtx.BindTo(ctx, (*context.Context)(nil))
 
 	if err := kongCtx.Run(); err != nil {
-		kongCtx.FatalIfErrorf(err)
+		exitErr(err)
 	}
+
+	return rcOK
+}
+
+func exitErr(err error) int {
+	fmt.Fprintln(os.Stderr, err.Error())
+	return rcErr
 }
