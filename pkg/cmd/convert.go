@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -15,6 +15,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 type ConvertCmd struct {
@@ -51,12 +52,8 @@ func (cmd *ConvertCmd) Run(ctx context.Context) error {
 	return nil
 }
 
-type CheckAssertions struct {
-	Assertions []*api.CheckAssertion `json:"assertions"`
-}
-
-func (cmd *ConvertCmd) load(_ context.Context) (*CheckAssertions, error) {
-	a := CheckAssertions{}
+func (cmd *ConvertCmd) load(_ context.Context) (*api.CheckAssertions, error) {
+	a := &api.CheckAssertions{}
 
 	var r *os.File
 
@@ -78,20 +75,29 @@ func (cmd *ConvertCmd) load(_ context.Context) (*CheckAssertions, error) {
 	}
 	defer r.Close()
 
-	dec := json.NewDecoder(r)
-	if err := dec.Decode(&a); err != nil {
+	buf := bytes.Buffer{}
+	if _, err := buf.ReadFrom(r); err != nil {
 		return nil, err
 	}
 
-	return &a, nil
+	uOpts := protojson.UnmarshalOptions{
+		AllowPartial:   true,
+		DiscardUnknown: true,
+	}
+
+	if err := uOpts.Unmarshal(buf.Bytes(), a); err != nil {
+		return nil, err
+	}
+
+	return a, nil
 }
 
 type DecisionAssertions struct {
 	Assertions []*api.DecisionAssertion `json:"assertions"`
 }
 
-func (cmd *ConvertCmd) transform(_ context.Context, a *CheckAssertions) *DecisionAssertions {
-	d := DecisionAssertions{}
+func (cmd *ConvertCmd) transform(_ context.Context, a *api.CheckAssertions) *api.DecisionAssertions {
+	d := &api.DecisionAssertions{}
 
 	identityType := aza2.IdentityType(aza2.IdentityType_value["IDENTITY_TYPE_"+strings.ToUpper(cmd.IdentityType)])
 
@@ -120,10 +126,10 @@ func (cmd *ConvertCmd) transform(_ context.Context, a *CheckAssertions) *Decisio
 
 		d.Assertions = append(d.Assertions, &decision)
 	}
-	return &d
+	return d
 }
 
-func (cmd *ConvertCmd) persist(_ context.Context, d *DecisionAssertions) error {
+func (cmd *ConvertCmd) persist(_ context.Context, d *api.DecisionAssertions) error {
 	var w *os.File
 
 	w = os.Stdout
@@ -136,10 +142,20 @@ func (cmd *ConvertCmd) persist(_ context.Context, d *DecisionAssertions) error {
 	}
 	defer w.Close()
 
-	enc := json.NewEncoder(w)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(d); err != nil {
+	buf, err := protojson.MarshalOptions{
+		Multiline:         true,
+		Indent:            "  ",
+		AllowPartial:      true,
+		UseProtoNames:     true,
+		UseEnumNumbers:    false,
+		EmitUnpopulated:   false,
+		EmitDefaultValues: true,
+	}.Marshal(d)
+	if err != nil {
+		return err
+	}
+
+	if _, err := w.Write(buf); err != nil {
 		return err
 	}
 

@@ -1,7 +1,7 @@
-package check2decision_test
+package cmd_test
 
 import (
-	"encoding/json"
+	"bytes"
 	"os"
 	"testing"
 
@@ -43,15 +43,22 @@ func TestCheck1(t *testing.T) {
 }
 
 func TestCheck2(t *testing.T) {
-	a := struct {
-		Assertions []*api.CheckAssertion `json:"assertions"`
-	}{}
+	a := &api.CheckAssertions{}
 
-	r, err := os.Open("./checks.json")
+	r, err := os.Open("../../checks.json")
 	assert.NoError(t, err)
 
-	dec := json.NewDecoder(r)
-	if err := dec.Decode(&a); err != nil {
+	b := bytes.Buffer{}
+	if _, err := b.ReadFrom(r); err != nil {
+		assert.NoError(t, err)
+	}
+
+	uOpts := protojson.UnmarshalOptions{
+		AllowPartial:   true,
+		DiscardUnknown: true,
+	}
+
+	if err := uOpts.Unmarshal(b.Bytes(), a); err != nil {
 		assert.NoError(t, err)
 	}
 
@@ -70,19 +77,28 @@ func TestCheck2(t *testing.T) {
 }
 
 func TestCheck3(t *testing.T) {
-	a := struct {
-		Assertions []*api.CheckAssertion `json:"assertions"`
-	}{}
+	a := &api.CheckAssertions{}
 
-	r, err := os.Open("./checks.json")
+	r, err := os.Open("../../checks.json")
 	assert.NoError(t, err)
 
-	dec := json.NewDecoder(r)
-	if err := dec.Decode(&a); err != nil {
+	b := bytes.Buffer{}
+	if _, err := b.ReadFrom(r); err != nil {
 		assert.NoError(t, err)
 	}
 
-	var decisions []*api.DecisionAssertion
+	uOpts := protojson.UnmarshalOptions{
+		AllowPartial:   true,
+		DiscardUnknown: true,
+	}
+
+	if err := uOpts.Unmarshal(b.Bytes(), a); err != nil {
+		assert.NoError(t, err)
+	}
+
+	d := api.DecisionAssertions{
+		Assertions: []*api.DecisionAssertion{},
+	}
 
 	t.Logf("length a: %d", len(a.Assertions))
 
@@ -108,18 +124,12 @@ func TestCheck3(t *testing.T) {
 			},
 			Expected: a.Assertions[i].Expected,
 		}
-		decisions = append(decisions, &decision)
+		d.Assertions = append(d.Assertions, &decision)
 	}
 
-	b := struct {
-		Assertions []*api.DecisionAssertion `json:"assertions"`
-	}{
-		Assertions: decisions,
-	}
+	t.Logf("length b: %d", len(d.Assertions))
 
-	t.Logf("length b: %d", len(b.Assertions))
-
-	for i := 0; i < len(b.Assertions); i++ {
+	for i := 0; i < len(d.Assertions); i++ {
 		t.Logf("%-4d %s:%s#%s@%s:%s - %t",
 			i,
 			a.Assertions[i].Check.ObjectType,

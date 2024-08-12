@@ -12,7 +12,15 @@ message CheckAssertion {
   bool expected                                   = 2;
 }
 
+message CheckAssertions {
+  repeated CheckAssertion assertions              = 1;
+}
+
 message DecisionAssertion {
   aserto.authorizer.v2.IsRequest check_decision   = 1;
   bool expected                                   = 2;
+}
+
+message DecisionAssertions {
+  repeated DecisionAssertion assertions           = 1;
 }
