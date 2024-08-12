@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "github.com/aserto-dev/check2decision/api;api"; 
+
+package aserto.check2decision.api;
+
+import "aserto/directory/reader/v3/reader.proto";
+import "aserto/authorizer/v2/authorizer.proto";
+
+message CheckAssertion {
+  aserto.directory.reader.v3.CheckRequest check   = 1;
+  bool expected                                   = 2;
+}
+
+message DecisionAssertion {
+  aserto.authorizer.v2.IsRequest check_decision   = 1;
+  bool expected                                   = 2;
+}
