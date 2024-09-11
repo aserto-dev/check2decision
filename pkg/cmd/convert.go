@@ -118,7 +118,8 @@ func (cmd *ConvertCmd) transform(_ context.Context, a *api.CheckAssertions) *api
 					Decisions: []string{cmd.PolicyRule},
 				},
 				PolicyInstance: &aza2.PolicyInstance{
-					Name: cmd.PolicyName,
+					Name:          cmd.PolicyName,
+					InstanceLabel: "",
 				},
 			},
 			Expected: a.Assertions[i].Expected,
