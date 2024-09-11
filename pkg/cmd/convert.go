@@ -149,7 +149,7 @@ func (cmd *ConvertCmd) persist(_ context.Context, d *api.DecisionAssertions) err
 		UseProtoNames:     true,
 		UseEnumNumbers:    false,
 		EmitUnpopulated:   false,
-		EmitDefaultValues: true,
+		EmitDefaultValues: false,
 	}.Marshal(d)
 	if err != nil {
 		return err
