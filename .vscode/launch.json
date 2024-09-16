@@ -10,9 +10,9 @@
       "request": "launch",
       "mode": "auto",
       "cwd": "${workspaceFolder}",
-      "program": "${fileDirname}",
+      "program": "${workspaceFolder}/cmd/check2decision",
       "args": [
-        "checks.json"
+        "-i", "checks.json", "-o", "check_decisions.json"
       ]
     }
   ]

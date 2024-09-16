@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	az2 "github.com/aserto-dev/go-authorizer/aserto/authorizer/v2"
 	aza2 "github.com/aserto-dev/go-authorizer/aserto/authorizer/v2/api"
 
+	"github.com/itchyny/gojq"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -145,7 +147,7 @@ func (cmd *ConvertCmd) persist(_ context.Context, d *api.DecisionAssertions) err
 
 	buf, err := protojson.MarshalOptions{
 		Multiline:         true,
-		Indent:            "  ",
+		Indent:            " ",
 		AllowPartial:      true,
 		UseProtoNames:     true,
 		UseEnumNumbers:    false,
@@ -156,8 +158,35 @@ func (cmd *ConvertCmd) persist(_ context.Context, d *api.DecisionAssertions) err
 		return err
 	}
 
-	if _, err := w.Write(buf); err != nil {
+	query, err := gojq.Parse("del(.assertions[].check_decision.policy_instance.instance_label)")
+	if err != nil {
 		return err
+	}
+
+	var input map[string]any
+	json.Unmarshal(buf, &input)
+
+	iter := query.Run(input)
+	for {
+		v, ok := iter.Next()
+		if !ok {
+			break
+		}
+		if err, ok := v.(error); ok {
+			if err, ok := err.(*gojq.HaltError); ok && err.Value() == nil {
+				break
+			}
+			return err
+		}
+
+		result, err := json.MarshalIndent(v, "", " ")
+		if err != nil {
+			return err
+		}
+
+		if _, err := w.Write(result); err != nil {
+			return err
+		}
 	}
 
 	return nil

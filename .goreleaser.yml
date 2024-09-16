@@ -46,7 +46,7 @@ archives:
       - LICENSE
       - README.md
     name_template: >-
-      {{ .Env.REPO }}_{{ .Os }}_{{- if eq .Arch "amd64" }}x86_64{{- else }}{{ .Arch }}{{ end }}
+      {{ .Env.REPO }}-{{ .Os }}-{{ .Arch }}
 
 checksum:
   # https://goreleaser.com/customization/checksum/
