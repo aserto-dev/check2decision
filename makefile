@@ -36,6 +36,11 @@ RELEASE_TAG        := $$(svu)
 deps: info install-svu install-goreleaser install-golangci-lint install-gotestsum install-buf
 	@echo -e "$(ATTN_COLOR)==> $@ $(NO_COLOR)"
 
+.PHONY: go-install
+go-install:
+	@echo -e "$(ATTN_COLOR)==> $@ $(NO_COLOR)"
+	@go install ./cmd/check2decision/main.go
+
 .PHONY: build
 build:
 	@echo -e "$(ATTN_COLOR)==> $@ $(NO_COLOR)"
