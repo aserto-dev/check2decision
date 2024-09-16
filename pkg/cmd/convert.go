@@ -164,7 +164,9 @@ func (cmd *ConvertCmd) persist(_ context.Context, d *api.DecisionAssertions) err
 	}
 
 	var input map[string]any
-	json.Unmarshal(buf, &input)
+	if err := json.Unmarshal(buf, &input); err != nil {
+		return err
+	}
 
 	iter := query.Run(input)
 	for {
