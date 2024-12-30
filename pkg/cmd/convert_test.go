@@ -63,7 +63,7 @@ func TestCheck2(t *testing.T) {
 	}
 
 	t.Logf("length %d", len(a.Assertions))
-	for i := 0; i < len(a.Assertions); i++ {
+	for i := range len(a.Assertions) {
 		t.Logf("%-4d %s:%s#%s@%s:%s - %t",
 			i,
 			a.Assertions[i].Check.ObjectType,
@@ -102,7 +102,7 @@ func TestCheck3(t *testing.T) {
 
 	t.Logf("length a: %d", len(a.Assertions))
 
-	for i := 0; i < len(a.Assertions); i++ {
+	for i := range len(a.Assertions) {
 		decision := api.DecisionAssertion{
 			CheckDecision: &az2.IsRequest{
 				IdentityContext: &aza2.IdentityContext{
@@ -129,7 +129,7 @@ func TestCheck3(t *testing.T) {
 
 	t.Logf("length b: %d", len(d.Assertions))
 
-	for i := 0; i < len(d.Assertions); i++ {
+	for i := range len(d.Assertions) {
 		t.Logf("%-4d %s:%s#%s@%s:%s - %t",
 			i,
 			a.Assertions[i].Check.ObjectType,

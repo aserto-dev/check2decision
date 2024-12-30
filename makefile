@@ -18,7 +18,7 @@ EXT_TMP_DIR        := ${EXT_DIR}/tmp
 
 SVU_VER 	         := 1.12.0
 GOTESTSUM_VER      := 1.11.0
-GOLANGCI-LINT_VER  := 1.56.2
+GOLANGCI-LINT_VER  := 1.61.0
 GORELEASER_VER     := 1.24.0
 BUF_VER            := 1.34.0
 
@@ -47,7 +47,7 @@ build:
 	@${EXT_BIN_DIR}/goreleaser build --clean --snapshot --single-target
 
 .PHONY: dev-release
-dev-release: 
+dev-release:
 	@echo -e "$(ATTN_COLOR)==> $@ $(NO_COLOR)"
 	@${EXT_BIN_DIR}/goreleaser release --clean --snapshot
 
@@ -72,7 +72,7 @@ lint:
 	@${EXT_BIN_DIR}/golangci-lint run --config ${PWD}/.golangci.yaml
 
 .PHONY: test
-test: 
+test:
 	@echo -e "$(ATTN_COLOR)==> test github.com/aserto-dev/topaz/pkg/app/tests/$@/... $(NO_COLOR)"
 	@${EXT_BIN_DIR}/gotestsum --format short-verbose -- -count=1 -parallel=1 -v -coverprofile=cover.out -coverpkg=./... ./...
 

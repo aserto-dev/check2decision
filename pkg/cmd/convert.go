@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -68,7 +70,7 @@ func (cmd *ConvertCmd) load(_ context.Context) (*api.CheckAssertions, error) {
 			return nil, err
 		}
 		if fi.IsDir() {
-			return nil, status.Errorf(codes.NotFound, cmd.Input)
+			return nil, status.Error(codes.NotFound, cmd.Input)
 		}
 		r, err = os.Open(cmd.Input)
 		if err != nil {
@@ -103,7 +105,7 @@ func (cmd *ConvertCmd) transform(_ context.Context, a *api.CheckAssertions) *api
 
 	identityType := aza2.IdentityType(aza2.IdentityType_value["IDENTITY_TYPE_"+strings.ToUpper(cmd.IdentityType)])
 
-	for i := 0; i < len(a.Assertions); i++ {
+	for i := range len(a.Assertions) {
 		decision := api.DecisionAssertion{
 			CheckDecision: &az2.IsRequest{
 				IdentityContext: &aza2.IdentityContext{
@@ -133,15 +135,9 @@ func (cmd *ConvertCmd) transform(_ context.Context, a *api.CheckAssertions) *api
 }
 
 func (cmd *ConvertCmd) persist(_ context.Context, d *api.DecisionAssertions) error {
-	var w *os.File
-
-	w = os.Stdout
-	if cmd.Output != "" {
-		var err error
-		w, err = os.Create(cmd.Output)
-		if err != nil {
-			return err
-		}
+	w, err := cmd.outputWriter()
+	if err != nil {
+		return err
 	}
 	defer w.Close()
 
@@ -169,15 +165,26 @@ func (cmd *ConvertCmd) persist(_ context.Context, d *api.DecisionAssertions) err
 	}
 
 	iter := query.Run(input)
+	return cmd.writeQueryOutput(iter, w)
+}
+
+func (cmd *ConvertCmd) outputWriter() (io.WriteCloser, error) {
+	if cmd.Output == "" {
+		return os.Stdout, nil
+	}
+	return os.Create(cmd.Output)
+}
+
+func (cmd *ConvertCmd) writeQueryOutput(iter gojq.Iter, w io.Writer) error {
 	for {
 		v, ok := iter.Next()
 		if !ok {
 			break
 		}
-		if err, ok := v.(error); ok {
-			if err, ok := err.(*gojq.HaltError); ok && err.Value() == nil {
-				break
-			}
+
+		if halt, err := cmd.isHaltError(v); halt {
+			break
+		} else if err != nil {
 			return err
 		}
 
@@ -192,4 +199,16 @@ func (cmd *ConvertCmd) persist(_ context.Context, d *api.DecisionAssertions) err
 	}
 
 	return nil
+}
+
+func (cmd *ConvertCmd) isHaltError(v any) (bool, error) {
+	if err, ok := v.(error); ok {
+		var gerr *gojq.HaltError
+		if errors.As(err, &gerr) && gerr.Value() == nil {
+			return true, nil
+		}
+		return false, err
+	}
+
+	return false, nil
 }
